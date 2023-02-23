@@ -1,0 +1,59 @@
+void setup() {
+  // put your setup code here, to run once:
+
+}
+
+// ARRAYS
+unsigned int arrFirstButton[24] = {Db_1, D_1, Eb_1, E_1, F_1, Gb_1, G_1, Ab_1, A_1, Bb_1, B_1, C3_1, Db3_1} 
+unsigned int arrSecondButton[24] = {Db_2, D_2, Eb_2, E_2, F_2, Gb_2, G_2, Ab_2, A_2, Bb_2, B_2, C3_2, Db3_2} 
+unsigned int arrStatus[24] = {S_Db, S_D, S_Eb, S_E, S_F, S_Gb, S_G, S_Ab, S_A, S_Bb, S_B, S_C3, S_Db3}
+
+      void loop() {
+        for (int i = 0; i < 24; i++)
+        {
+          // If button 1 is pressed
+          if (digitalRead(arrFirstButton[i])== LOW)
+          {
+            // If button was not pressed in previous loop
+            if (arrStatus[i] == 0)
+            {
+              // Initialise time variables
+              unsigned long time_1, time_2;
+              
+              // Record when button 1 was pressed 
+              time_1 = millis();
+              
+              // Remember that the note is now pressed 
+              arrStatus[i] = 1;
+              
+              // Wait until button 2 is also pressed 
+              while (digitalRead(arrSecondButton[i]) == HIGH){ }
+              
+              // Record when button 2 was pressed
+              time_2 = millis();
+              
+              // Calculate the time difference
+              unsigned long time_diff = time_2 - time_1;
+              
+              // Calculate velocity using a logarithmic formula 
+              float velocity = pow(M_E, (-time_diff/50)) * (97) + 30;
+              
+              // Write MIDI signal - ON
+              Serial.write(noteON);                 // Note on command
+              Serial.write(50+i);                   // What note has to be played
+              Serial.write(round(velocity));        // Velocity value
+            }  
+             else
+             {} // If note had already been pressed do nothing
+          }
+            
+          // If button 1 is not pressed
+          else
+          {
+             // Write MIDI signal - OFF
+             Serial.write(noteOFF);            //Note off comand
+             Serial.write(50+i);               //What note has to be stopped
+             Serial.write(0);                  //Velocity value
+             arrStatus[i] = 0;
+          }
+       }
