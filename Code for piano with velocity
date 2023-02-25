@@ -1,59 +1,116 @@
+#include <MIDI.h>
+
+MIDI_CREATE_DEFAULT_INSTANCE();
+
+
+int buttonApin = 29;  //footswitch A
+int buttonA1pin = 31; 
+int buttonBpin = 33;   //footswitch C
+int buttonB1pin = 35;
+int buttonCpin = 37;  //footswitch A
+int buttonC1pin = 39; 
+int buttonDpin = 41;   //footswitch C
+int buttonD1pin = 43;
+int buttonEpin = 45;
+int buttonE1pin = 47;
+
+int but_A = 0;
+int but_B = 0;
+int but_C = 0;
+int but_D = 0;
+int but_E = 0;
+
+
+
+int analogpot1 = A8;  //knob 1
+
+int analogpot1Old = 0;
+int analogpot1New = 0;
+
+#define analogpot1CC 54
+
 void setup() {
   // put your setup code here, to run once:
+MIDI.begin (); // MIDI START
 
+pinMode(buttonApin, INPUT_PULLUP);
+pinMode(buttonBpin, INPUT_PULLUP);
+pinMode(buttonCpin, INPUT_PULLUP);
+pinMode(buttonDpin, INPUT_PULLUP);
+pinMode(buttonEpin, INPUT_PULLUP);
+pinMode(buttonA1pin, INPUT_PULLUP);
+pinMode(buttonB1pin, INPUT_PULLUP);
+pinMode(buttonC1pin, INPUT_PULLUP);
+pinMode(buttonD1pin, INPUT_PULLUP);
+pinMode(buttonE1pin, INPUT_PULLUP);
+
+pinMode(analogpot1, INPUT);
+
+//Serial.begin(9600);
 }
+int arrFirstButton[5]  = {buttonApin, buttonBpin, buttonCpin, buttonDpin, buttonEpin};                                  
+int arrSecondButton[5] = {buttonA1pin, buttonB1pin, buttonC1pin, buttonD1pin, buttonE1pin}; 
+int arrStatus[5] = {but_A, but_B, but_C, but_D, but_E};                                   
+void loop() {
+  // put your main code here, to run repeatedly:
 
-// ARRAYS
-unsigned int arrFirstButton[24] = {Db_1, D_1, Eb_1, E_1, F_1, Gb_1, G_1, Ab_1, A_1, Bb_1, B_1, C3_1, Db3_1} 
-unsigned int arrSecondButton[24] = {Db_2, D_2, Eb_2, E_2, F_2, Gb_2, G_2, Ab_2, A_2, Bb_2, B_2, C3_2, Db3_2} 
-unsigned int arrStatus[24] = {S_Db, S_D, S_Eb, S_E, S_F, S_Gb, S_G, S_Ab, S_A, S_Bb, S_B, S_C3, S_Db3}
 
-      void loop() {
-        for (int i = 0; i < 24; i++)
-        {
-          // If button 1 is pressed
-          if (digitalRead(arrFirstButton[i])== LOW)
-          {
-            // If button was not pressed in previous loop
-            if (arrStatus[i] == 0)
-            {
-              // Initialise time variables
-              unsigned long time_1, time_2;
-              
-              // Record when button 1 was pressed 
-              time_1 = millis();
-              
-              // Remember that the note is now pressed 
-              arrStatus[i] = 1;
-              
-              // Wait until button 2 is also pressed 
-              while (digitalRead(arrSecondButton[i]) == HIGH){ }
-              
-              // Record when button 2 was pressed
-              time_2 = millis();
-              
-              // Calculate the time difference
-              unsigned long time_diff = time_2 - time_1;
-              
-              // Calculate velocity using a logarithmic formula 
-              float velocity = pow(M_E, (-time_diff/50)) * (97) + 30;
-              
-              // Write MIDI signal - ON
-              Serial.write(noteON);                 // Note on command
-              Serial.write(50+i);                   // What note has to be played
-              Serial.write(round(velocity));        // Velocity value
-            }  
-             else
-             {} // If note had already been pressed do nothing
-          }
-            
-          // If button 1 is not pressed
-          else
-          {
-             // Write MIDI signal - OFF
-             Serial.write(noteOFF);            //Note off comand
-             Serial.write(50+i);               //What note has to be stopped
-             Serial.write(0);                  //Velocity value
-             arrStatus[i] = 0;
-          }
-       }
+
+//footswitches
+
+for (int i = 0; i < 5; i++)
+{
+
+    
+  if (digitalRead(arrFirstButton[i]) == LOW)
+  {
+    if (arrStatus[i] == 0)
+    {
+      unsigned long time_1, time_2;
+
+      time_1 = millis();
+
+      arrStatus[i] = 1;
+
+      while (digitalRead(arrSecondButton[i]) == HIGH){ }
+
+      time_2 = millis();
+
+      unsigned long time_diff = time_2 - time_1;
+          
+      float velocity = pow(M_E, (-time_diff/50)) * (97) + 30;
+
+      MIDI.sendNoteOn((60+i), round(velocity), 1);
+      //Serial.println("note " + 60+i + "on");
+      //Serial.println(velocity);
+    }
+    else
+    {
+
+    }
+  }
+  else
+  {
+    MIDI.sendNoteOff(60+i, 0, 1);
+    arrStatus[i] = 0;
+  }
+    
+}
+//potentiometers
+
+int pot1 = analogRead(A8);
+int analogpot1New = analogRead(A8);
+
+    if (analogpot1New - analogpot1Old >= 35 || analogpot1Old - analogpot1New >= 35) {
+      analogpot1Old = analogpot1New;
+      analogpot1New = (map(analogpot1New, 1023, 0, 0, 120));
+      analogpot1New = (constrain(analogpot1New, 0, 120));
+      MIDI.sendControlChange(analogpot1CC, analogpot1New, 1);
+      //Serial.print ("pot: ");
+      //Serial.println(pot1);
+      //Serial.print("potread: ");
+      //Serial.println(analogpot1New); 
+    }
+
+delay(25);
+}
